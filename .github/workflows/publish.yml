@@ -19,7 +19,7 @@ jobs:
 
       - name: Rebuild full installer
         shell: bash
-        run: cat release-assets/full-installer.part.* > "release-assets/云祺AI直播-v0.9.3-测试版.zip"
+        run: cat release-assets/full-installer.part.* > "release-assets/yunqi-ai-live-v0.9.3-full.zip"
 
       - name: Verify release assets
         shell: bash
@@ -43,7 +43,7 @@ jobs:
           gh release delete v0.9.3 --cleanup-tag --yes 2>/dev/null || true
           gh release create v0.9.3 \
             "release-assets/yunqi-ai-live-client-v0.9.3-update.zip" \
-            "release-assets/云祺AI直播-v0.9.3-测试版.zip" \
+            "release-assets/yunqi-ai-live-v0.9.3-full.zip" \
             "release-assets/update.json" \
             --title "云祺 AI 直播 v0.9.3" \
             --notes "用户数据永久保留，新增客户端一键更新，并优化参考音频批量选择。"
