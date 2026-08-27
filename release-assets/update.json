@@ -1,0 +1,6 @@
+{
+  "version": "0.9.3",
+  "download_url": "https://github.com/zdf198818-creator/yunqi-ai-live-releases/releases/download/v0.9.3/yunqi-ai-live-client-v0.9.3-update.zip",
+  "sha256": "d2fcf38d682d641e87c85306a43fa96abc775faffa6cbb7172e103cc3a01284b",
+  "notes": "用户数据永久保留，新增客户端一键更新，并优化参考音频批量选择。"
+}
