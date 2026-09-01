@@ -5,11 +5,10 @@ import re
 import shutil
 import wave
 from collections.abc import Iterable
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from ailive.parser import SPECIAL_MARKER_PATTERN
-
 
 _ILLEGAL_FILENAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _WHITESPACE = re.compile(r"\s+")
@@ -115,7 +114,7 @@ def prepare_output_batch(
     now: datetime | None = None,
 ) -> tuple[Path, Path | None]:
     """Archive the previous batch and create a clean current output folder."""
-    timestamp = now or datetime.now()
+    timestamp = now or datetime.now(timezone.utc)
     name = safe_folder_name(script_name)
     current = current_root / name
     archived: Path | None = None
@@ -144,10 +143,10 @@ def cleanup_history(
     """Delete archived batches whose modification time is older than retention."""
     if not history_root.is_dir():
         return []
-    cutoff = (now or datetime.now()) - timedelta(days=retention_days)
+    cutoff = (now or datetime.now(timezone.utc)) - timedelta(days=retention_days)
     removed: list[Path] = []
     for entry in history_root.iterdir():
-        modified = datetime.fromtimestamp(entry.stat().st_mtime)
+        modified = datetime.fromtimestamp(entry.stat().st_mtime, tz=timezone.utc)
         if modified >= cutoff:
             continue
         if entry.is_dir():

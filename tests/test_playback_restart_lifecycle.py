@@ -123,3 +123,62 @@ def test_ten_repeated_stops_invalidate_every_previous_session() -> None:
         assert window.worker is None
         assert worker.shutdown_calls == 1
         assert window._retired_workers == []
+
+
+def test_final_generation_failure_skips_line_without_resetting_session() -> None:
+    logs: list[str] = []
+    refills: list[bool] = []
+    completions: list[bool] = []
+    window = SimpleNamespace(
+        inflight_count=2,
+        finished_count=0,
+        line_positions={"bad-line": 2},
+        playback_lines=[SimpleNamespace(), SimpleNamespace(), SimpleNamespace()],
+        status_label=_Widget(),
+        _log=logs.append,
+        _fill_generation_buffer=lambda: refills.append(True),
+        _mark_playback_complete=lambda: completions.append(True),
+    )
+
+    MainWindow._on_line_error(window, "bad-line", "temporary network failure")
+
+    assert window.inflight_count == 1
+    assert window.finished_count == 1
+    assert refills == [True]
+    assert completions == []
+    assert "已自动跳过" in window.status_label.text
+    assert "继续" in logs[0]
+
+
+def test_live_worker_retries_same_line_before_advancing() -> None:
+    worker = TTSWorker("http://127.0.0.1:8000", max_attempts=3)
+    line = SimpleNamespace(line_id="retry-line")
+    generated = object()
+    attempts: list[str] = []
+    retries: list[tuple[str, int, str]] = []
+    ready: list[object] = []
+    errors: list[tuple[str, str]] = []
+
+    worker._ensure_connection = lambda: None
+
+    def synthesize(current_line: object) -> object:
+        attempts.append(current_line.line_id)
+        if len(attempts) < 3:
+            raise TimeoutError("temporary timeout")
+        return generated
+
+    worker._synthesize_line = synthesize
+    worker.lineRetry.connect(
+        lambda line_id, attempt, message: retries.append((line_id, attempt, message))
+    )
+    worker.lineReady.connect(ready.append)
+    worker.lineError.connect(lambda line_id, message: errors.append((line_id, message)))
+    worker.submit(line)
+    worker._jobs.put(None)
+
+    worker.run()
+
+    assert attempts == ["retry-line", "retry-line", "retry-line"]
+    assert [retry[1] for retry in retries] == [2, 3]
+    assert ready == [generated]
+    assert errors == []

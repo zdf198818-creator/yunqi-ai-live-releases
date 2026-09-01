@@ -2,7 +2,6 @@ from pathlib import Path
 
 from PIL import Image
 
-
 project_root = Path(__file__).resolve().parents[1]
 source = project_root / "assets" / "yunqi-ai-live-icon-v2.png"
 target = project_root / "assets" / "yunqi-ai-live-icon-v2.ico"

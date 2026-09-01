@@ -130,7 +130,7 @@ class QwenTTSBackend(TTSBackend):
             # Qwen3-TTS: it can fail to emit EOS and occupy the GPU indefinitely,
             # leaving the client with an empty buffer.  Keep conservative
             # sampling enabled and seed it from stable request data instead.
-            seed_material = "\0".join((voice.reference_id, language, text)).encode("utf-8")
+            seed_material = f"{voice.reference_id}\0{language}\0{text}".encode()
             seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:8], "big")
             self.torch.manual_seed(seed)
             if self.torch.cuda.is_available():

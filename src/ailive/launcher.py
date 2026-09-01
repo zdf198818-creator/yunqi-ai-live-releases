@@ -11,7 +11,6 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, PlainTextResponse
 
-
 TTS_PORT = int(os.getenv("AILIVE_TTS_PORT", "8000"))
 LAUNCHER_PORT = int(os.getenv("AILIVE_LAUNCHER_PORT", "7860"))
 WORKSPACE = Path(os.getenv("AILIVE_WORKSPACE", "/workspace"))

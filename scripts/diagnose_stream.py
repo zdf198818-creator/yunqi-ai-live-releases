@@ -7,7 +7,6 @@ from urllib.parse import urlencode
 import httpx
 import websocket
 
-
 base_url = "http://127.0.0.1:18000"
 token = os.environ["AILIVE_DIAG_TOKEN"]
 headers = {"Authorization": f"Bearer {token}"}

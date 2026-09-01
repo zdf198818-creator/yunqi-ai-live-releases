@@ -5,6 +5,7 @@ import logging
 import os
 import secrets
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
@@ -20,6 +21,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 
+from ailive import __version__
 from ailive.domain import ScriptLine
 from ailive.parser import parse_script
 from ailive.server.audio import change_speed, pcm16_wav
@@ -33,33 +35,36 @@ backend = build_backend(settings.backend, settings.model_path)
 # Qwen3-TTS holds one model on one GPU.  Multiple WebSocket clients (the main
 # script and an interjection) must not enter inference at the same time: doing
 # so makes both requests slower and can destabilize the long-lived connection.
+logger = logging.getLogger("uvicorn.error")
 inference_lock = asyncio.Lock()
 
-app = FastAPI(title="AI Live Voice TTS", version="0.1.0")
-logger = logging.getLogger("uvicorn.error")
 
-
-@app.on_event("startup")
-async def warm_up_optimized_backend() -> None:
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
     if os.environ.get("AILIVE_USE_OPTIMIZED_QWEN", "0") != "1":
+        yield
         return
     voices = repository.list_all()
     if not voices:
         logger.warning("[WARMUP] skipped: no reference voice")
-        return
-    logger.info("[WARMUP] compiling optimized Qwen3-TTS pipeline...")
-    started_at = time.perf_counter()
-    samples, sample_rate = await asyncio.to_thread(
-        backend.synthesize, "系统预热。", voices[0], "Chinese", "normal"
-    )
-    duration = len(samples) / sample_rate
-    elapsed = time.perf_counter() - started_at
-    logger.info(
-        "[WARMUP] complete generation=%.2fs audio=%.2fs RTF=%.2f",
-        elapsed,
-        duration,
-        elapsed / duration if duration else 0.0,
-    )
+    else:
+        logger.info("[WARMUP] compiling optimized Qwen3-TTS pipeline...")
+        started_at = time.perf_counter()
+        samples, sample_rate = await asyncio.to_thread(
+            backend.synthesize, "系统预热。", voices[0], "Chinese", "normal"
+        )
+        duration = len(samples) / sample_rate
+        elapsed = time.perf_counter() - started_at
+        logger.info(
+            "[WARMUP] complete generation=%.2fs audio=%.2fs RTF=%.2f",
+            elapsed,
+            duration,
+            elapsed / duration if duration else 0.0,
+        )
+    yield
+
+
+app = FastAPI(title="AI Live Voice TTS", version=__version__, lifespan=lifespan)
 
 
 def require_api_token(authorization: Annotated[str | None, Header()] = None) -> None:
@@ -193,7 +198,7 @@ async def tts_stream(websocket: WebSocket) -> None:
                     generated_audio_seconds,
                     rtf,
                 )
-            except Exception as error:  # noqa: BLE001 - keep connection alive for next sentence
+            except Exception as error:
                 logger.exception("[ERROR] task=%s generation failed", task_id)
                 await websocket.send_json(
                     {"type": "error", "task_id": task_id, "message": str(error)}

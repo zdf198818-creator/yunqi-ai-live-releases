@@ -4110,7 +4110,7 @@ class MainWindow(QMainWindow):
         self.pause_button.setText("暂停/继续")
 
         session_id = self.playback_session_id
-        self.worker = TTSWorker(self._server_url(), self._token())
+        self.worker = TTSWorker(self._server_url(), self._token(), max_attempts=3)
         self.worker.connected.connect(
             lambda current_session=session_id: self._on_worker_connected(
                 current_session
@@ -4119,6 +4119,11 @@ class MainWindow(QMainWindow):
         self.worker.lineReady.connect(
             lambda generated, current_session=session_id: self._on_worker_line_ready(
                 current_session, generated
+            )
+        )
+        self.worker.lineRetry.connect(
+            lambda line_id, attempt, message, current_session=session_id: self._on_worker_line_retry(
+                current_session, line_id, attempt, message
             )
         )
         self.worker.lineError.connect(
@@ -4159,6 +4164,15 @@ class MainWindow(QMainWindow):
         if session_id != self.playback_session_id:
             return
         self._on_line_error(line_id, message)
+
+    def _on_worker_line_retry(
+        self, session_id: int, line_id: str, attempt: int, message: str
+    ) -> None:
+        if session_id != self.playback_session_id:
+            return
+        number = self.line_positions.get(line_id, 0)
+        self._log(f"第{number}句生成失败，自动进行第{attempt}次尝试：{message}")
+        self.status_label.setText(f"第{number}句生成失败，正在自动重试")
 
     def _fill_generation_buffer(self) -> None:
         if self.worker is None:
@@ -4226,21 +4240,13 @@ class MainWindow(QMainWindow):
     def _on_line_error(self, line_id: str, message: str) -> None:
         self.inflight_count = max(0, self.inflight_count - 1)
         number = self.line_positions.get(line_id, 0)
-        self._log(f"第{number}句生成失败: {message}")
-        self.status_label.setText(f"生成失败：第{number}句")
-        self.player.reset()
-        self.countdown_timer.stop()
-        self.countdown_active = False
-        self._shutdown_worker()
-        self.playback_started = False
-        self.pause_requested = False
-        self.manually_paused = False
-        self.play_asap_requested = False
-        self.inflight_count = 0
-        self.pause_button.setEnabled(False)
-        self.pause_button.setText("暂停/继续")
-        self.start_button.setText("启动")
-        self.start_button.setEnabled(True)
+        self.finished_count += 1
+        self._log(f"第{number}句连续生成失败，已跳过并继续：{message}")
+        self.status_label.setText(f"第{number}句生成失败，已自动跳过")
+        if self.finished_count >= len(self.playback_lines):
+            self._mark_playback_complete()
+            return
+        self._fill_generation_buffer()
 
     def _begin_start_countdown(self) -> None:
         if self.countdown_active or self.playback_started:

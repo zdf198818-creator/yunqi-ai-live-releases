@@ -3,12 +3,12 @@ from __future__ import annotations
 import io
 import os
 import wave
-from types import SimpleNamespace
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
-from ailive.client.audio import AudioToken
 from ailive.client.app import MainWindow
+from ailive.client.audio import AudioToken
 from ailive.client.local_synthesis import (
     cleanup_history,
     prepare_output_batch,
@@ -62,7 +62,7 @@ def test_prepare_output_batch_archives_previous_run(tmp_path: Path) -> None:
         current_root,
         history_root,
         "课程",
-        now=datetime(2026, 8, 27, 12, 30, 0),
+        now=datetime(2026, 8, 27, 12, 30, 0, tzinfo=timezone.utc),
     )
     assert current.is_dir()
     assert archived == history_root / "20260827-123000-课程"
@@ -75,7 +75,7 @@ def test_cleanup_history_keeps_seven_days(tmp_path: Path) -> None:
     recent = history / "recent"
     old.mkdir(parents=True)
     recent.mkdir()
-    now = datetime(2026, 8, 27, 12, 0, 0)
+    now = datetime(2026, 8, 27, 12, 0, 0, tzinfo=timezone.utc)
     old_time = (now - timedelta(days=8)).timestamp()
     recent_time = (now - timedelta(days=6)).timestamp()
     os.utime(old, (old_time, old_time))

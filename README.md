@@ -2,7 +2,7 @@
 
 云祺 AI 直播由 Windows 桌面客户端和云端 Qwen3-TTS 服务组成。客户端管理直播话术、参考音频、逐句缓存和声卡播放；服务端负责音色上传和流式语音合成。
 
-当前 Windows 客户端发布版本：**0.9.12**。Python 包元数据仍显示 0.1.0，这是已知的版本统一技术债，不代表客户端发布版本。
+当前 Windows 客户端和 Python 包版本：**0.9.12**。版本统一从 `ailive.__version__` 读取。
 
 ## 主要能力
 
@@ -70,7 +70,7 @@ $env:QT_QPA_PLATFORM = "offscreen"
 .venv\Scripts\python -m ruff check src scripts tests
 ```
 
-2026-09-01 审查结果：pytest **97 passed，3 warnings**；Ruff **未通过，16 项**。真实 GPU、Windows 声卡和安装/升级回退仍需人工验收，详情见 `HANDOFF.md`。
+2026-09-01 修复后结果：pytest **99 passed，1 warning**；Ruff **全部通过**。关键播放状态13项连续运行3轮全部通过。真实 GPU、Windows 声卡和安装/升级回退仍需人工验收，详情见 `HANDOFF.md`。
 
 ## 配置、数据与安全
 

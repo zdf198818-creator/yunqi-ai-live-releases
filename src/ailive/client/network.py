@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import io
 import json
 import queue
 import time
 import wave
-import io
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -72,11 +72,15 @@ class TTSWorker(QThread):
     connected = Signal()
     disconnected = Signal(str)
     lineReady = Signal(object)
+    lineRetry = Signal(str, int, str)
     lineError = Signal(str, str)
 
-    def __init__(self, base_url: str, token: str = "") -> None:
+    def __init__(
+        self, base_url: str, token: str = "", max_attempts: int = 1
+    ) -> None:
         super().__init__()
         self.ws_url = websocket_url(base_url, token)
+        self.max_attempts = max(1, int(max_attempts))
         self._jobs: queue.Queue[ScriptLine | None] = queue.Queue()
         self._running = True
         self._socket: websocket.WebSocket | None = None
@@ -100,14 +104,23 @@ class TTSWorker(QThread):
             line = self._jobs.get()
             if line is None:
                 break
-            try:
-                self._ensure_connection()
-                generated = self._synthesize_line(line)
-                if self._running:
-                    self.lineReady.emit(generated)
-            except Exception as error:  # noqa: BLE001 - worker must report network failures
-                self._close_socket()
-                if self._running:
+            for attempt in range(1, self.max_attempts + 1):
+                if not self._running:
+                    break
+                try:
+                    self._ensure_connection()
+                    generated = self._synthesize_line(line)
+                    if self._running:
+                        self.lineReady.emit(generated)
+                    break
+                except Exception as error:  # noqa: BLE001 - worker reports failures
+                    self._close_socket()
+                    if not self._running:
+                        break
+                    if attempt < self.max_attempts:
+                        self.lineRetry.emit(line.line_id, attempt + 1, str(error))
+                        self.msleep(250 * attempt)
+                        continue
                     self.lineError.emit(line.line_id, str(error))
         self._close_socket()
 

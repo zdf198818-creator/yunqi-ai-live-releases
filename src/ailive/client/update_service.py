@@ -11,10 +11,11 @@ from pathlib import Path
 import httpx
 from PySide6.QtCore import QThread, Signal
 
+from ailive import __version__
 from ailive.client.storage import install_root
 from ailive.client.version_layout import UPDATER_EXECUTABLE
 
-APP_VERSION = "0.9.12"
+APP_VERSION = __version__
 DEFAULT_MANIFEST_URL = (
     "https://github.com/zdf198818-creator/yunqi-ai-live-releases/"
     "releases/latest/download/update.json"
