@@ -1,0 +1,50 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Test, lint and local tool caches
+.pytest_cache/
+.pytest*/
+.ruff_cache/
+.ruff*/
+.coverage
+htmlcov/
+
+# Build and release outputs
+build/
+dist/
+.release-build/
+.versioned-release-build/
+artifacts/
+releases/
+*.exe
+*.zip
+*.part
+*.log
+
+# Runtime and user data
+data/
+models/
+*.db
+*.sqlite
+*.sqlite3
+*.wav
+*.mp3
+*.flac
+
+# Local credentials and keys
+ailive_ssh_key
+ailive_ssh_key.pub
+*.pem
+*.key
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

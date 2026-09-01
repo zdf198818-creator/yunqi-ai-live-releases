@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-live-voice"
+version = "0.1.0"
+description = "逐句话术、多参考音色的云端实时直播语音工具"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+server = [
+  "fastapi>=0.115,<1",
+  "numpy>=1.26,<3",
+  "python-multipart>=0.0.18,<1",
+  "uvicorn[standard]>=0.34,<1",
+]
+gpu = [
+  "qwen-tts",
+]
+client = [
+  "httpx>=0.28,<1",
+  "numpy>=1.26,<3",
+  "PySide6>=6.8,<7",
+  "websocket-client>=1.8,<2",
+]
+dev = [
+  "httpx>=0.28,<1",
+  "pytest>=8.3,<9",
+  "ruff>=0.11,<1",
+]
+
+[project.scripts]
+ailive-server = "ailive.server.app:run"
+ailive-launcher = "ailive.launcher:run"
+ailive-client = "ailive.client.app:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
